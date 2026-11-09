@@ -1,0 +1,23 @@
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+
+# Bytecode y cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Base de datos local y temporales de SQLite
+data/*.db
+data/*.db-journal
+*.sqlite3
+
+# Archivos temporales o de prueba local
+test_core.py
+test_db.py
+
+# Configuración de editores
+.vscode/
+.idea/
