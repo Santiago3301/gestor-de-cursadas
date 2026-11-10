@@ -6,8 +6,8 @@ DB_PATH = BASE_DIR / "data" / "cursadas.db"
 SCHEMA_PATH = BASE_DIR / "persistence" / "schema.sql"
 
 class DatabaseManager:
-    def __init__(self, db_path: Path = DB_PATH):
-        self.db_path = db_path
+    def __init__(self, db_path: Path | str = DB_PATH):
+        self.db_path = Path(db_path)
         # aseguro que exista el directorio data
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 

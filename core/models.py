@@ -36,8 +36,8 @@ class Evaluacion:
     numero: int
     fecha: date
     tipo: TipoEvaluacionEnum
-    aprobado: bool
-    
+
+    aprobado: bool | None = None
     id: int | None = None
     nota: float | None = None
     eval_recupera_id : int | None = None
@@ -85,4 +85,3 @@ class Materia:
             return 0.0
 
         return round( sum(notas_validas) / len(notas_validas) , 2)
-

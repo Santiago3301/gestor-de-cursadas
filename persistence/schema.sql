@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS practicos (
     titulo TEXT NOT NULL,
     estado TEXT NOT NULL CHECK (estado IN ('NO_INICIADO', 'EN_PROGRESO', 'COMPLETADO')),
     FOREIGN KEY (materia_id) REFERENCES materias (id) ON DELETE CASCADE
+    UNIQUE(materia_id,numero)
 );
 
 CREATE TABLE IF NOT EXISTS entregas (
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS evaluaciones (
     numero INTEGER NOT NULL,
     fecha TEXT NOT NULL, -- Formato ISO: YYYY-MM-DD
     tipo TEXT NOT NULL CHECK (tipo IN ('PARCIAL', 'RECUPERATORIO', 'COLOQUIO', 'FINAL')),
-    aprobado INTEGER NOT NULL CHECK (aprobado IN (0, 1)),
+    aprobado INTEGER CHECK (aprobado IN (0, 1)),
     nota REAL,
     eval_recupera_id INTEGER,
     FOREIGN KEY (materia_id) REFERENCES materias (id) ON DELETE CASCADE,
