@@ -60,28 +60,8 @@ class Materia:
     def get_practicos(self):
         return self.practicos
 
-    def calcular_avance(self):
-        if not self.practicos:
-            return 0.0
-        completados = sum(
-            1 for p in self.practicos if p.estado == EstadoPracticoEnum.COMPLETADO
-        )
-        return round((completados / len(self.practicos)) * 100.0, 2)
+    def get_entregas(self):
+        return self.entregas
 
-    def calcular_promedio(self) -> float:
-        recuperadas_ids = {
-            ev.eval_recupera_id
-            for ev in self.evaluaciones
-            if ev.eval_recupera_id is not None
-        }
-
-        notas_validas = [
-            ev.nota
-            for ev in self.evaluaciones
-            if ev.id not in recuperadas_ids and ev.nota is not None
-        ]
-
-        if not notas_validas:
-            return 0.0
-
-        return round( sum(notas_validas) / len(notas_validas) , 2)
+    def get_evaluaciones(self):
+        return self.evaluaciones
