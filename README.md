@@ -63,18 +63,12 @@ gestor-cursadas/
 
 ---
 
-## Inicialización y Pruebas
+## Ejecución
 
-Si sos otra persona viendo esto (lo cual no debería ocurrir porque tengo el repo en privado por ahora), no vas a poder ejecutar nada todavía. Si sos yo, hacé esto:
-
-Para inicializar la base de datos SQLite y correr las pruebas de verificación de entidades y repositorios, ejecutá desde la raíz del proyecto:
+Para correr la primera versión del programa, simplemente poner el siguiente comando en una terminal:
 
 ```bash
-# Ejecutar verificación de dominio y modelos
-python test_core.py
-
-# Ejecutar verificación de esquemas y repositorios SQLite
-python test_db.py
+python main.py
 ```
 
 ---
