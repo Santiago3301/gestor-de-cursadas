@@ -1,16 +1,18 @@
 import sqlite3
 from datetime import date
 from typing import Any
+
 from core.enums import (
     CuatrimestreEnum,
-    EstadoMateriaEnum,
     EstadoEntregaEnum,
+    EstadoMateriaEnum,
     EstadoPracticoEnum,
     TipoEvaluacionEnum,
 )
+from core.models import Entrega, Evaluacion, Materia, Practico
 
-from core.models import Materia, Practico, Entrega, Evaluacion
 from .database import DatabaseManager
+
 
 class MateriaRepository:
     def __init__(self, db: DatabaseManager):
@@ -159,9 +161,20 @@ class MateriaRepository:
 
             return materia
 
+    def obtener_id_materia_por_nombre(self, materia_nombre: str) -> int | None:
+        """Obtener el ID de una materia dado un string."""
+        query_materia = "SELECT id FROM materias WHERE nombre = ?"
+
+        with self.db.get_connection() as conn:
+            row = conn.execute(query_materia, (materia_nombre,)).fetchone()
+            if not row:
+                return None
+            else:
+                return row["id"]
+
     def listar_todas(self) -> list[Materia]:
         """Devuelve todas las materias registradas (resumen básico sin cargar colecciones)."""
-        query = "SELECT * FROM materias ORDER BY anio_cursada DESC, cuatrimestre ASC, nombre ASC"
+        query = "SELECT * FROM materias ORDER BY anio_cursada ASC, cuatrimestre ASC, nombre ASC"
         with self.db.get_connection() as conn:
             rows = conn.execute(query).fetchall()
             return [
@@ -184,7 +197,7 @@ class PracticoRepository:
     def _insertar(self, practico: Practico) -> Practico | None:
         query = """
             INSERT INTO practicos (
-                materia_id, numero, titulo, estado 
+                materia_id, numero, titulo, estado
             ) VALUES (?,?,?,?)
             """
 
@@ -301,7 +314,7 @@ class PracticoRepository:
         o EN_PROGRESO, opcionalmente filtrados por materia"""
         query = """
             SELECT * FROM practicos
-            WHERE estado IN (?,?) 
+            WHERE estado IN (?,?)
         """
         params: list[str | int] = [
             EstadoPracticoEnum.NO_INICIADO.value,
@@ -354,7 +367,7 @@ class EntregaRepository:
                     ),
                 )
                 entrega.id = cursor.lastrowid
-            return entrega 
+            return entrega
         except sqlite3.IntegrityError:
             # Por ejemplo, si falla la clave foránea de materia_id o practico_id
             return None
@@ -397,7 +410,7 @@ class EntregaRepository:
             cursor = conn.execute(query, (entrega_id,))
             return cursor.rowcount > 0
 
-    # pintó dry 
+    # pintó dry
     def _row_a_entrega(self, row: sqlite3.Row) -> Entrega:
         """Helper privado para mapear una fila de SQLite a la entidad Entrega."""
         raw_fecha = row["fecha_entrega"]
@@ -421,7 +434,7 @@ class EntregaRepository:
             row = conn.execute(query, (entrega_id,)).fetchone()
             if not row:
                 return None
-        return self._row_a_entrega(row) 
+        return self._row_a_entrega(row)
 
     def listar_por_materia(self, materia_id: int) -> list[Entrega]:
         """Devuelve todas las entregas correspondientes a una materia."""
@@ -436,18 +449,18 @@ class EntregaRepository:
     def listar_todos(self) -> list[Entrega]:
         """Devuelve todas las entregas cargadas en la base de datos."""
         query = """
-            SELECT * FROM entregas 
+            SELECT * FROM entregas
             ORDER BY numero ASC
         """
         with self.db.get_connection() as conn:
             rows = conn.execute(query).fetchall()
             return [self._row_a_entrega(r) for r in rows]
-    
+
     def listar_pendientes(self, materia_id : int | None = None) -> list[Entrega]:
         """Devuelve todas las entregas con estado PENDIENTE, opcionalmente filtrados por materia"""
         query = """
-            SELECT * FROM entregas 
-            WHERE estado = ? 
+            SELECT * FROM entregas
+            WHERE estado = ?
         """
 
         params: list[str | int] = [ EstadoEntregaEnum.PENDIENTE.value ]
@@ -580,7 +593,7 @@ class EvaluacionRepository:
     def listar_futuras(self, materia_id : int | None = None) -> list[Evaluacion]:
         """Devuelve las evaluaciones con fecha igual posterior a la fecha actual"""
         hoy_str = date.today().isoformat()
-        
+
         query = """
             SELECT * FROM evaluaciones
             WHERE fecha >= ?

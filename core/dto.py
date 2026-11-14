@@ -3,7 +3,9 @@
 # repositories los utilizan para coordinar las entidades
 # basicamente es la recolección de estadísticas
 from dataclasses import dataclass
+
 from core.enums import EstadoMateriaEnum
+
 
 @dataclass
 class EstadisticasMateria:

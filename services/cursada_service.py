@@ -1,12 +1,17 @@
-from core.models import Materia, Practico, Evaluacion, Entrega
-from core.enums import EstadoMateriaEnum, EstadoPracticoEnum, EstadoEntregaEnum, CuatrimestreEnum 
 from core.dto import EstadisticasMateria
-from persistence.repository import (
-    MateriaRepository,
-    EntregaRepository,
-    PracticoRepository,
-    EvaluacionRepository,
+from core.enums import (
+    CuatrimestreEnum,
+    EstadoEntregaEnum,
+    EstadoPracticoEnum,
 )
+from core.models import Evaluacion, Materia, Practico
+from persistence.repository import (
+    EntregaRepository,
+    EvaluacionRepository,
+    MateriaRepository,
+    PracticoRepository,
+)
+
 
 class AnalisisCursada:
     def __init__(
@@ -46,7 +51,7 @@ class AnalisisCursada:
             1 for e in evals if e.aprobado is not None
         )
         evals_aprobadas = sum(
-            1 for e in evals if e.aprobado == True
+            1 for e in evals if e.aprobado is True
         )
 
         promedio_evals = self._calcular_promedio_evals(evals)
@@ -93,15 +98,18 @@ class AnalisisCursada:
         )
         return round( (completados/len(pracs)) * 100.0, 2)
 
-class GestionMateria:
+class GestionCursada:
     def __init__(
             self,
             repo_materia: MateriaRepository,
             repo_practico: PracticoRepository,
-
+            repo_entrega: EntregaRepository,
+            repo_evaluacion: EvaluacionRepository,
     ) -> None:
         self.repo_materia = repo_materia
         self.repo_practico = repo_practico
+        self.repo_entrega = repo_entrega
+        self.repo_evaluacion = repo_evaluacion
 
     def cargar_materia(
             self,
@@ -127,3 +135,22 @@ class GestionMateria:
 
     def listar_practicos_materia(self, materia_id: int):
         return self.repo_practico.listar_por_materia(materia_id)
+
+    def obtener_id_materia_por_nombre(self, nombre: str) -> int | None:
+        return self.repo_materia.obtener_id_materia_por_nombre(nombre)
+
+    def cargar_practico(
+        self,
+        materia_id: int,
+        numero: int,
+        titulo: str,
+        estado: EstadoPracticoEnum
+    ) -> bool:
+        """Permite cargar un practico desde la interfaz de usuario. Retorna true si la carga fue exitosa, False si no lo fue."""
+        practico = Practico(
+            materia_id=materia_id,
+            numero=numero,
+            titulo=titulo,
+            estado=estado
+        )
+        return self.repo_practico.guardar(practico=practico) is not None

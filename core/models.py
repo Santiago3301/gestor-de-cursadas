@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field  # noqa: I001
 from datetime import date
 from core.enums import (
     CuatrimestreEnum,

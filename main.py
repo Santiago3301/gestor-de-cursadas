@@ -1,9 +1,13 @@
 from persistence.database import DatabaseManager
 from persistence.repository import (
-    MateriaRepository, PracticoRepository, EntregaRepository, EvaluacionRepository
+    EntregaRepository,
+    EvaluacionRepository,
+    MateriaRepository,
+    PracticoRepository,
 )
-from services.cursada_service import GestionMateria, AnalisisCursada
+from services.cursada_service import GestionCursada
 from ui.cli import menu
+
 
 def main():
     db = DatabaseManager()
@@ -11,10 +15,14 @@ def main():
 
     repo_materia = MateriaRepository(db)
     repo_practico = PracticoRepository(db)
+    repo_entrega = EntregaRepository(db)
+    repo_evaluacion = EvaluacionRepository(db)
 
-    gestion_service = GestionMateria(
+    gestion_service = GestionCursada(
         repo_materia=repo_materia,
         repo_practico=repo_practico,
+        repo_entrega=repo_entrega,
+        repo_evaluacion=repo_evaluacion,
     )
 
     menu(gestion_service)
