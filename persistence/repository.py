@@ -218,25 +218,28 @@ class PracticoRepository:
             # violacion de la restriccion UNIQUE (materia_id, numero)
             return None
 
-    def _actualizar(self, practico: Practico) -> Practico:
+    def _actualizar(self, practico: Practico) -> Practico | None:
         query = """
             UPDATE practicos
             SET materia_id = ?, numero = ?, titulo = ?, estado = ?
             WHERE id = ?
         """
-
-        with self.db.get_connection() as conn:
-            conn.execute(
-                query,
-                (
-                    practico.materia_id,
-                    practico.numero,
-                    practico.titulo,
-                    practico.estado.value,
-                    practico.id
-                ),
-            )
-        return practico
+        try:
+            with self.db.get_connection() as conn:
+                conn.execute(
+                    query,
+                    (
+                        practico.materia_id,
+                        practico.numero,
+                        practico.titulo,
+                        practico.estado.value,
+                        practico.id
+                    ),
+                )
+            return practico
+        except sqlite3.IntegrityError:
+            # violacion de la restriccion UNIQUE (materia_id, numero)
+            return None
 
     def guardar(self, practico: Practico) -> Practico | None:
         """Inserta un practico nuevo o actualiza uno existente."""
@@ -271,64 +274,25 @@ class PracticoRepository:
 
         return practico
 
-    def listar_por_materia(self, materia_id: int) -> list[Practico]:
-        """Devuelve todos los practicos correspondientes a una materia."""
-        query = """
-            SELECT * FROM practicos WHERE materia_id = ?
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query,(materia_id,)).fetchall()
-            return [
-                Practico(
-                    id=r["id"],
-                    materia_id=r["materia_id"],
-                    numero=r["numero"],
-                    titulo=r["titulo"],
-                    estado=EstadoPracticoEnum(r["estado"])
-                )
-                for r in rows
-            ]
-
-    def listar_todos(self) -> list[Practico]:
-        """Devuelve todos los practicos cargados en la base de datos."""
-        query = """
-            SELECT * FROM practicos
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query).fetchall()
-            return [
-                Practico(
-                    id=r["id"],
-                    materia_id=r["materia_id"],
-                    numero=r["numero"],
-                    titulo=r["titulo"],
-                    estado=EstadoPracticoEnum(r["estado"])
-                )
-                for r in rows
-            ]
-
-    def listar_pendientes(self, materia_id : int | None = None) -> list[Practico]:
-        """Devuelve todos los practicos con estado NO_INICIADO
-        o EN_PROGRESO, opcionalmente filtrados por materia"""
-        query = """
-            SELECT * FROM practicos
-            WHERE estado IN (?,?)
-        """
-        params: list[str | int] = [
-            EstadoPracticoEnum.NO_INICIADO.value,
-            EstadoPracticoEnum.EN_PROGRESO.value,
-        ]
+    def listar_practicos(
+        self,
+        materia_id: int | None = None,
+        estado: EstadoPracticoEnum | None = None,
+    ) -> list[Practico]:
+        query = " SELECT * FROM practicos WHERE 1 = 1"
+        params: list[object] = []
 
         if materia_id is not None:
             query += " AND materia_id = ?"
             params.append(materia_id)
+        if estado is not None:
+            query += " AND estado = ?"
+            params.append(estado.value)
 
-        query += " ORDER BY materia_id ASC, numero ASC"
+        query += "ORDER BY materia_id ASC, numero ASC"
 
         with self.db.get_connection() as conn:
-            rows = conn.execute(query, tuple(params)).fetchall()
+            rows = conn.execute(query,tuple(params)).fetchall()
             return [
                 Practico(
                     id=r["id"],
