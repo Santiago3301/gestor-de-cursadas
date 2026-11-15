@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS materias (
     cuatrimestre TEXT NOT NULL CHECK (cuatrimestre IN ('1C', '2C', 'ANUAL')),
     promocionable INTEGER NOT NULL CHECK (promocionable IN (0, 1)),
     estado TEXT NOT NULL CHECK (estado IN ('CURSANDO', 'REGULAR', 'PROMOCIONADA', 'APROBADA', 'LIBRE')),
+    nota_final REAL,
 
     UNIQUE(nombre, anio_cursada, cuatrimestre)
 );

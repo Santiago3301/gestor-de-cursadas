@@ -17,6 +17,7 @@ data/*.db-journal
 # Archivos temporales o de prueba local
 test_core.py
 test_db.py
+test_flujo.py
 
 # Configuración de editores
 .vscode/

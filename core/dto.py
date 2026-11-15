@@ -26,3 +26,18 @@ class EstadisticasMateria:
     total_evaluaciones_aprobadas: int
 
     promedio_evaluaciones: float | None
+
+# ----- ANALÍTICAS (GEMINI)
+
+@dataclass
+class ResumenCarrera:
+    total_materias: int
+    materias_aprobadas: int       # PROMOCIONADA + APROBADA
+    materias_regulares: int
+    materias_cursando: int
+    promedio_general: float | None
+    promedio_promocionadas: float | None
+    promedio_finales: float | None
+    porcentaje_avance: float
+
+# ----- FIN ANALÍTICAS (GEMINI)

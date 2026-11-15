@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class CuatrimestreEnum(Enum):
     PRIMER_CUATRIMESTRE = "1C"
     SEGUNDO_CUATRIMESTRE = "2C"

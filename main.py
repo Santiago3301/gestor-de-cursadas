@@ -7,8 +7,8 @@ from persistence.repository import (
 )
 from services.cursada_service import (
     AnalisisCursada,
-    #GestionEntrega,
-    #GestionEvaluacion,
+    GestionEntrega,
+    GestionEvaluacion,
     GestionMateria,
     GestionPractico,
 )
@@ -32,14 +32,15 @@ def main():
         repo_materia=repo_materia,
     )
 
-    '''
     gestion_ent= GestionEntrega(
             repo_entrega=repo_entrega,
+            repo_materia=repo_materia,
+            repo_practico=repo_practico
         )
-        gestion_ev= GestionEvaluacion(
-            repo_evaluacion=repo_evaluacion
-        )
-    '''
+    gestion_ev= GestionEvaluacion(
+        repo_evaluacion=repo_evaluacion,
+        repo_materia=repo_materia,
+    )
 
 
     analisis = AnalisisCursada(
@@ -52,7 +53,9 @@ def main():
     menu(
         analisis_cursada=analisis,
         gestor_materia=gestion_mat,
-        gestor_practico=gestion_prac
+        gestor_practico=gestion_prac,
+        gestor_entrega=gestion_ent,
+        gestor_evaluacion=gestion_ev,
     )
 
 if __name__ == "__main__":

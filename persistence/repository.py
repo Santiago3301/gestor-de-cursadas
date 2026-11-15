@@ -1,6 +1,5 @@
 import sqlite3
 from datetime import date
-from typing import Any
 
 from core.enums import (
     CuatrimestreEnum,
@@ -21,8 +20,8 @@ class MateriaRepository:
     def _insertar(self, materia: Materia) -> Materia | None:
         query = """
             INSERT INTO materias (
-                nombre, anio_plan, anio_cursada, cuatrimestre, promocionable, estado
-            ) VALUES (?,?,?,?,?,?)
+                nombre, anio_plan, anio_cursada, cuatrimestre, promocionable, estado, nota_final
+            ) VALUES (?,?,?,?,?,?,?)
             """
 
         try:
@@ -35,7 +34,8 @@ class MateriaRepository:
                         materia.anio_cursada,
                         materia.cuatrimestre.value,
                         1 if materia.promocionable else 0,
-                        materia.estado.value
+                        materia.estado.value,
+                        materia.nota_final,
                     ),
                 )
                 materia.id = cursor.lastrowid
@@ -48,7 +48,7 @@ class MateriaRepository:
         query = """
             UPDATE materias
             SET nombre = ?, anio_plan = ?, anio_cursada = ?, cuatrimestre = ?,
-            promocionable = ?, estado = ?
+            promocionable = ?, estado = ?, nota_final = ?
             WHERE id = ?
         """
 
@@ -62,6 +62,7 @@ class MateriaRepository:
                     materia.cuatrimestre.value,
                     1 if materia.promocionable else 0,
                     materia.estado.value,
+                    materia.nota_final,
                     materia.id,
                 ),
             )
@@ -98,6 +99,7 @@ class MateriaRepository:
                 cuatrimestre=CuatrimestreEnum(row["cuatrimestre"]),
                 promocionable=bool(row["promocionable"]),
                 estado=EstadoMateriaEnum(row["estado"]),
+                nota_final=row["nota_final"],
             )
 
             # cargar practicos asociados
@@ -152,7 +154,7 @@ class MateriaRepository:
                     numero=e["numero"],
                     fecha=date.fromisoformat(e["fecha"]),
                     tipo=TipoEvaluacionEnum(e["tipo"]),
-                    aprobado=bool(e["aprobado"]),
+                    aprobado=bool(e["aprobado"]) if e["aprobado"] is not None else None,
                     nota=e["nota"],
                     eval_recupera_id=e["eval_recupera_id"]
                 )
@@ -160,17 +162,6 @@ class MateriaRepository:
             ]
 
             return materia
-
-    def obtener_id_materia_por_nombre(self, materia_nombre: str) -> int | None:
-        """Obtener el ID de una materia dado un string."""
-        query_materia = "SELECT id FROM materias WHERE nombre = ?"
-
-        with self.db.get_connection() as conn:
-            row = conn.execute(query_materia, (materia_nombre,)).fetchone()
-            if not row:
-                return None
-            else:
-                return row["id"]
 
     def listar_todas(self) -> list[Materia]:
         """Devuelve todas las materias registradas (resumen básico sin cargar colecciones)."""
@@ -186,6 +177,7 @@ class MateriaRepository:
                     cuatrimestre=CuatrimestreEnum(r["cuatrimestre"]),
                     promocionable=bool(r["promocionable"]),
                     estado=EstadoMateriaEnum(r["estado"]),
+                    nota_final=r["nota_final"],
                 )
                 for r in rows
             ]
@@ -289,7 +281,7 @@ class PracticoRepository:
             query += " AND estado = ?"
             params.append(estado.value)
 
-        query += "ORDER BY materia_id ASC, numero ASC"
+        query += " ORDER BY materia_id ASC, numero ASC"
 
         with self.db.get_connection() as conn:
             rows = conn.execute(query,tuple(params)).fetchall()
@@ -400,43 +392,42 @@ class EntregaRepository:
                 return None
         return self._row_a_entrega(row)
 
-    def listar_por_materia(self, materia_id: int) -> list[Entrega]:
+    def listar_entregas(
+        self,
+        materia_id: int | None = None,
+        practico_id: int | None = None,
+        estado: EstadoEntregaEnum | None = None,
+        solo_pendientes: bool = False,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+    ) -> list[Entrega]:
         """Devuelve todas las entregas correspondientes a una materia."""
-        query = """
-            SELECT * FROM entregas WHERE materia_id = ?
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query,(materia_id,)).fetchall()
-            return [self._row_a_entrega(r) for r in rows]
-
-    def listar_todos(self) -> list[Entrega]:
-        """Devuelve todas las entregas cargadas en la base de datos."""
-        query = """
-            SELECT * FROM entregas
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query).fetchall()
-            return [self._row_a_entrega(r) for r in rows]
-
-    def listar_pendientes(self, materia_id : int | None = None) -> list[Entrega]:
-        """Devuelve todas las entregas con estado PENDIENTE, opcionalmente filtrados por materia"""
-        query = """
-            SELECT * FROM entregas
-            WHERE estado = ?
-        """
-
-        params: list[str | int] = [ EstadoEntregaEnum.PENDIENTE.value ]
+        query = "SELECT * FROM entregas WHERE 1 = 1"
+        params: list[object] = []
 
         if materia_id is not None:
             query += " AND materia_id = ?"
             params.append(materia_id)
+        if practico_id is not None:
+            query += " AND practico_id = ?"
+            params.append(practico_id)
+        if estado is not None:
+            query += " AND estado = ?"
+            params.append(estado.value)
+        elif solo_pendientes:
+            query += " AND estado IN (?,?)"
+            params.extend([EstadoEntregaEnum.PENDIENTE.value, EstadoEntregaEnum.DESAPROBADO.value])
+        if fecha_desde is not None:
+            query += " AND fecha_entrega >= ?"
+            params.append(fecha_desde.isoformat())
+        if fecha_hasta is not None:
+            query += " AND fecha_entrega <= ?"
+            params.append(fecha_hasta.isoformat())
 
-        query += " ORDER BY materia_id ASC, numero ASC"
+        query += " ORDER BY fecha_entrega IS NULL, fecha_entrega ASC"
 
         with self.db.get_connection() as conn:
-            rows = conn.execute(query, tuple(params)).fetchall()
+            rows = conn.execute(query,(tuple(params))).fetchall()
             return [self._row_a_entrega(r) for r in rows]
 
 class EvaluacionRepository:
@@ -451,22 +442,26 @@ class EvaluacionRepository:
         """
 
         # le podria poner un try except pero no sé qué colisión puede ocurrir
-        with self.db.get_connection() as conn:
-            cursor = conn.execute(
-                query,
-                (
-                    evaluacion.materia_id,
-                    evaluacion.titulo,
-                    evaluacion.numero,
-                    evaluacion.fecha.isoformat() if isinstance(evaluacion.fecha, date) else evaluacion.fecha,
-                    evaluacion.tipo.value,
-                    evaluacion.aprobado,
-                    evaluacion.nota,
-                    evaluacion.eval_recupera_id,
-                ),
-            )
-            evaluacion.id = cursor.lastrowid
-        return evaluacion
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.execute(
+                    query,
+                    (
+                        evaluacion.materia_id,
+                        evaluacion.titulo,
+                        evaluacion.numero,
+                        evaluacion.fecha.isoformat() if isinstance(evaluacion.fecha, date) else evaluacion.fecha,
+                        evaluacion.tipo.value,
+                        evaluacion.aprobado,
+                        evaluacion.nota,
+                        evaluacion.eval_recupera_id,
+                    ),
+                )
+                evaluacion.id = cursor.lastrowid
+            return evaluacion
+        except sqlite3.IntegrityError:
+            return None
+
 
     def _actualizar(self, evaluacion: Evaluacion) -> Evaluacion:
         query = """
@@ -484,7 +479,7 @@ class EvaluacionRepository:
                     evaluacion.numero,
                     evaluacion.fecha.isoformat() if isinstance(evaluacion.fecha, date) else evaluacion.fecha,
                     evaluacion.tipo.value,
-                    evaluacion.aprobado,
+                    int(evaluacion.aprobado) if evaluacion.aprobado is not None else None,
                     evaluacion.nota,
                     evaluacion.eval_recupera_id,
                     evaluacion.id,
@@ -534,45 +529,38 @@ class EvaluacionRepository:
                 return None
         return self._row_a_evaluacion(row)
 
-    def listar_por_materia(self, materia_id: int) -> list[Evaluacion]:
-        """Devuelve todas las evaluaciones correspondientes a una materia (por si hace falta viste)"""
-        query = """
-            SELECT * FROM evaluaciones WHERE materia_id = ?
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query,(materia_id,)).fetchall()
-            return [ self._row_a_evaluacion(r) for r in rows ]
-
-    def listar_todas(self) -> list[Evaluacion]:
-        """Devuelve todas las evaluaciones cargadas en la base de datos (por alguna razón)."""
-        query = """
-            SELECT * FROM evaluaciones
-            ORDER BY numero ASC
-        """
-        with self.db.get_connection() as conn:
-            rows = conn.execute(query).fetchall()
-            return [ self._row_a_evaluacion(r) for r in rows ]
-
-    def listar_futuras(self, materia_id : int | None = None) -> list[Evaluacion]:
-        """Devuelve las evaluaciones con fecha igual posterior a la fecha actual"""
-        hoy_str = date.today().isoformat()
-
-        query = """
-            SELECT * FROM evaluaciones
-            WHERE fecha >= ?
-        """
-
-        params: list[Any] = [
-            hoy_str
-        ]
+    def listar_evaluaciones(
+        self,
+        materia_id: int | None = None,
+        tipo: TipoEvaluacionEnum | None = None,
+        aprobado: bool | None = None,
+        solo_pendientes: bool = False,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+    ) -> list[Evaluacion]:
+        query = "SELECT * FROM evaluaciones WHERE 1 = 1"
+        params: list[object] = []
 
         if materia_id is not None:
             query += " AND materia_id = ?"
             params.append(materia_id)
+        if tipo is not None:
+            query += " AND tipo = ?"
+            params.append(tipo.value)
+        if solo_pendientes:
+                query += " AND aprobado IS NULL"
+        elif aprobado is not None:
+            query += " AND aprobado = ?"
+            params.append(int(aprobado))  # SQLite guarda bools como 0 y 1
+        if fecha_desde is not None:
+            query += " AND fecha >= ?"
+            params.append(fecha_desde.isoformat())
+        if fecha_hasta is not None:
+            query += " AND fecha <= ?"
+            params.append(fecha_hasta.isoformat())
 
-        query += " ORDER BY fecha ASC"
+        query += " ORDER BY fecha IS NULL, fecha ASC, numero ASC"
 
         with self.db.get_connection() as conn:
             rows = conn.execute(query, tuple(params)).fetchall()
-            return [self._row_a_evaluacion(r) for r in rows]
+            return [ self._row_a_evaluacion(r) for r in rows ]

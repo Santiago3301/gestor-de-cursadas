@@ -47,6 +47,7 @@ class Materia:
     cuatrimestre: CuatrimestreEnum
     promocionable: bool
     id: int | None = None
+    nota_final: float | None = None
     estado: EstadoMateriaEnum = EstadoMateriaEnum.CURSANDO
     # las materias se asocian con practicos, entregas y evaluaciones
     practicos: list[Practico] = field(default_factory=list)
